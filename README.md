@@ -2,7 +2,7 @@
  A tornado redis driver ,it's actually encapsulation  for [tornadis](https://github.com/thefab/tornadis)
 
 ## Example
-```python3.5
+```python
     from tornado_hbredis import TornadoHBRedis
     
     client = TornadoHBRedis('localhost', 6379)
@@ -31,7 +31,7 @@
 ```
 
 ## Detail
-  The detail api refer to [here][tornado_hbredis.py]
+  The detail api refer to [here](tornado_hbredis.py)
   
 
 ## LICENSE
