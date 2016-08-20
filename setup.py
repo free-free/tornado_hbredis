@@ -1,26 +1,32 @@
 # coding=utf8
 
 from setuptools import setup,find_packages
-
-import os
-
+import re
+import os 
 
 def read(f):
-    open(os.path.join(os.path.dirname(__file__),f)).read().strip()
+    return open(os.path.join(os.path.dirname(__file__),f)).read().strip()
+
+def find_version(f):
+    file_content = read(f)
+    try:
+        return re.findall(r'__version__ = "([^\'\"]+)"\r?$',
+            file_content, re.M)[0]
+    except IndexError:
+        raise RuntimeError("Can find version number")
 
 
 DESCRIPTION = "tornado_hbredis is an asynchronous redis client for tornado"
 
 setup(
     name="tornado_hbredis",
-    version=0.1,
+    version=find_version("tornado_hbredis/__init__.py"),
     author="HuangBiao",
     author_email="19941222hb@gmail.com",
     description=DESCRIPTION,
     long_description=read("README.rst"),
     license="MIT",
     url="https://github.com/free-free/tornado_hbredis",
-    download_url="https;//github.com/free-free/tornado_hbredis",
     packages=find_packages(),
     install_requires=["tornado","tornadis"],
     include_package_data=True,
