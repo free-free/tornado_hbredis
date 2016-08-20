@@ -1,27 +1,42 @@
 #-*- coding:utf-8 -*-
-from tornado import gen
-import tornadis
 from collections import deque
 import functools
+import copy
 
+from tornado import gen
+import tornadis
 
 def decode(func):
     @functools.wraps(func)
     @gen.coroutine
     def wrapper(self, *args, **kwargs):
-        data = yield func(self, *args, **kwargs)
+        data = None
+        result = yield func(self, *args, **kwargs)
         if self._bytes_decode == True:
-            if isinstance(data,bytes):
-                data = data.decode("utf-8")
+            if isinstance(result, list):
+                data = list(map(lambda item: item.decode() if \
+                    isinstance(item,bytes) else item, result))
+            elif isinstance(result, dict):
+                data = {}
+                for k, v in result.items():
+                    data[k] = v.decode()
+            else:
+                try:
+                    data = result.decode()
+                except Exception:
+                    data = result
+        else: 
+            data = result
         return data
     return wrapper
+
 
 class StringCommandsMixin:
 
     @decode
     @gen.coroutine
     def set(self, key, value):
-        result = yield self._client.call('set', key, value)
+        result = yield self._client.call('set', key, str(value))
         return result
 
     @decode
@@ -57,7 +72,7 @@ class StringCommandsMixin:
     @decode
     @gen.coroutine
     def incrbyfloat(self, key, floatinc):
-        result = yield self._client.call('incrbyfloat', key, floatinc)
+        result = yield self._client.call('incrbyfloat', key, str(floatinc))
         return result
 
     @decode
@@ -164,11 +179,13 @@ class StringCommandsMixin:
 
 class HashCommandsMixin:
 
+    @decode
     @gen.coroutine
     def hget(self, key, field):
         result = yield self._client.call('hget', key, field)
         return result
 
+    @decode
     @gen.coroutine
     def hmget(self, key, *fields):
         if isinstance(fields[0], (list, tuple)):
@@ -179,11 +196,13 @@ class HashCommandsMixin:
             data[fields[i]] = value
         return data
 
+    @decode
     @gen.coroutine
     def hset(self, key, field, value):
         result = yield self._client.call('hset', key, field, value)
         return result
 
+    @decode
     @gen.coroutine
     def hmset(self, key, pairs):
         pairs_to_list = deque()
@@ -192,11 +211,13 @@ class HashCommandsMixin:
         result = yield self._client.call('hmset', key, *list(pairs_to_list))
         return result
 
+    @decode
     @gen.coroutine
     def hexists(self, key, field):
         result = yield self._client.call('hexists', key, field)
         return result
 
+    @decode
     @gen.coroutine
     def hgetall(self, key):
         result = yield self._client.call('hgetall', key)
@@ -207,11 +228,13 @@ class HashCommandsMixin:
             data[k] = result[kvi+1]
         return data
 
+    @decode
     @gen.coroutine
     def hincrby(self, key, field, inc):
         result = yield self._client.call('hincrby', key, field, inc)
         return result
 
+    @decode
     @gen.coroutine
     def hdel(self, key, *fields):
         result = None
@@ -222,16 +245,19 @@ class HashCommandsMixin:
             result = yield self._client.call("hdel", key, *list(fields))
         return result
 
+    @decode
     @gen.coroutine
     def hkeys(self, key):
         result = yield self._client.call('hkeys', key)
         return result
 
+    @decode
     @gen.coroutine
     def hlen(self, key):
         result = yield self._client.call('hlen', key)
         return result
 
+    @decode
     @gen.coroutine
     def hvals(self, key):
         result = yield self._client.call('hvals', key)
@@ -557,9 +583,10 @@ class _PipelineWrapper(object):
         "delete": "del"
     }
 
-    def __init__(self, pipeline, client):
+    def __init__(self, hbredis, pipeline, client):
         self._pipeline = pipeline
         self._client = client
+        self._bytes_decode = hbredis._bytes_decode
 
     def _dict_to_list(self, val_dict):
         val_l = deque()
@@ -625,6 +652,6 @@ class TornadoHBRedis(
             host=self._host, port=self._port, autoconnect=self._autoconnect)
 
     def pipeline(self):
-        self.__pipeline_wrapper = _PipelineWrapper(
+        self.__pipeline_wrapper = _PipelineWrapper(self,
             tornadis.Pipeline(), self._client)
         return self.__pipeline_wrapper
