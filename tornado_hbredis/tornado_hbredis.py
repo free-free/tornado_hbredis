@@ -36,7 +36,9 @@ class StringCommandsMixin:
     @decode
     @gen.coroutine
     def set(self, key, value):
-        result = yield self._client.call('set', key, str(value))
+        if isinstance(value, float):
+            value = str(value)
+        result = yield self._client.call('set', key, value)
         return result
 
     @decode
