@@ -83,7 +83,9 @@ class StringCommandsMixin:
 
     @decode
     @gen.coroutine
-    def mget(self, keys):
+    def mget(self, *keys):
+        if isinstance(keys[0], (list, tuple)):
+            keys = keys[0]
         result = yield self._client.call("mget", *list(keys))
         return result
 
@@ -168,9 +170,14 @@ class HashCommandsMixin:
         return result
 
     @gen.coroutine
-    def hmget(self, key, fields):
+    def hmget(self, key, *fields):
+        if isinstance(fields[0], (list, tuple)):
+            fields = fields[0]
         result = yield self._client.call("hmget", key, *list(fields))
-        return result
+        data = {}
+        for i, value in enumerate(result):
+            data[fields[i]] = value
+        return data
 
     @gen.coroutine
     def hset(self, key, field, value):
@@ -193,7 +200,12 @@ class HashCommandsMixin:
     @gen.coroutine
     def hgetall(self, key):
         result = yield self._client.call('hgetall', key)
-        return result
+        data = {}
+        length = len(result)
+        for kvi in range(0, length, 2):
+            k = result[kvi].decode()
+            data[k] = result[kvi+1]
+        return data
 
     @gen.coroutine
     def hincrby(self, key, field, inc):
@@ -201,14 +213,13 @@ class HashCommandsMixin:
         return result
 
     @gen.coroutine
-    def hdel(self, key, fields):
+    def hdel(self, key, *fields):
         result = None
-        if isinstance(fields, str):
-            result = yield self._client.call('hdel', key, fields)
-        elif isinstance(fields, (list, tuple)):
+        if isinstance(fields[0], (list, tuple)):
+            fields = fields[0]
             result = yield self._client.call('hdel', key, *list(fields))
         else:
-            pass
+            result = yield self._client.call("hdel", key, *list(fields))
         return result
 
     @gen.coroutine
@@ -231,13 +242,17 @@ class ListCommandsMixin:
 
     @decode
     @gen.coroutine
-    def lpush(self, key, val_l):
+    def lpush(self, key, *val_l):
+        if isinstance(val_l[0], (list, tuple)):
+            val_l = val_l[0]
         result = yield self._client.call("lpush", key, *list(val_l))
         return result
 
     @decode
     @gen.coroutine
-    def rpush(self, key, val_l):
+    def rpush(self, key, *val_l):
+        if isinstance(val_l[0], (tuple, list)):
+            val_l = val_l[0]
         result = yield self._client.call("rpush", key, *list(val_l))
         return result
 
@@ -274,7 +289,7 @@ class ListCommandsMixin:
     @decode
     @gen.coroutine
     def lindex(self, key, index):
-        result = yield self._client.call("lindex", ket, index)
+        result = yield self._client.call("lindex", key, index)
         return result
 
     @decode
@@ -318,26 +333,23 @@ class SetCommandsMixin:
 
     @decode
     @gen.coroutine
-    def sadd(self, key, vals):
+    def sadd(self, key, *vals):
         result = None
-        if isinstance(vals, (tuple, list)):
+        if isinstance(vals[0], (tuple, list)):
+            vals = vals[0]
             result = yield self._client.call('sadd', key, *list(vals))
-        elif isinstance(vals, str):
-            result = yield self_client.call("sadd", key, vals)
         else:
-            pass
+            result = yield self._client.call("sadd", key, *list(vals))
         return result
 
     @decode
     @gen.coroutine
-    def srem(self, key, vals):
-        result = None
-        if isinstance(vals, (tuple, list)):
+    def srem(self, key, *vals):
+        if isinstance(vals[0], (tuple, list)):
+            vals = vals[0]
             result = yield self._client.call("srem", key, *list(vals))
-        elif isinstance(vals, str):
-            result = yield self._client.call("srem", key, vals)
         else:
-            pass
+            result = yield self._client.call("srem", key, *list(vals))
         return result
 
     @decode
@@ -348,7 +360,7 @@ class SetCommandsMixin:
 
     @decode
     @gen.coroutine
-    def sismember(self, ket, val):
+    def sismember(self, key, val):
         result = yield self._client.call("sismember", key, val)
         return result
 
