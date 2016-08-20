@@ -14,7 +14,10 @@ string operation
 
     from tornado_hbredis import TornadoHBRedis
     
-    client = TornadoHBRedis('localhost', 6379)
+    client = TornadoHBRedis('localhost', 6379, autoconnect=True, bytes_decode=False)
+    # params: 'autoconnect' default value is True
+    #         'bytes_decode' default value is False,which means the data from db will be bytes
+    #                if 'bytes_decode' equal to True, which means the data from db will decoded
     
     yield client.set("name", "john")
     yield client.sget("name")
